@@ -195,11 +195,11 @@ The core decisions — which flows to automate, how to handle the shared instanc
 
 | Phase | Time |
 |-------|------|
-| Exploring the app, clicking around, understanding the flows | ~20 min |
-| Setting up the project (init, install, config) | ~10 min |
-| Building page objects (6 pages) | ~20 min |
-| Writing tests (booking + admin CRUD + validation) | ~25 min |
+| Exploring the app, clicking around, understanding the flows | ~30 min |
+| Setting up the project (init, install, config) | ~15 min |
+| Building page objects (6 pages) | ~25 min |
+| Writing tests (booking + admin CRUD + validation) | ~45 min |
 | Debugging selectors and fixing flaky bits (3 rounds) | ~25 min |
-| Generating reports and capturing screenshots | ~5 min |
+| Generating reports and capturing screenshots | ~25 min |
 | Writing this README | ~15 min |
-| **Total** | **~2 hours** |
+| **Total** | **~3 hours** |
