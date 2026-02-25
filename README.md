@@ -1,64 +1,92 @@
-# Shady Meadows B&B — Playwright Test Automation Suite
+# Shady Meadows B&B — Playwright Test Automation
 
-Automated QA test suite for [Shady Meadows B&B](https://automationintesting.online/), a demo hotel booking application built on the Restful-Booker-Platform.
+Automated tests for [automationintesting.online](https://automationintesting.online/), a hotel booking demo app.
 
-## Flows Automated
+---
 
-### 1. E2E Happy Path — Admin Room Management (`tests/e2e.spec.ts`)
+## About the Application
 
-Full CRUD lifecycle through the admin panel:
+I started by spending some time clicking through the app to understand what it does. It's a B&B hotel site with two sides:
+- **Public site** — homepage with room listings, a booking flow, and a contact form
+- **Admin panel** at `/admin` — login, room management (CRUD), reports, branding, messages
 
-1. Navigate to `/admin` and verify the login form
-2. Login with valid admin credentials
-3. Verify redirect to `/admin/rooms` and admin navigation visibility
-4. Record the initial room count
-5. Create a new room (Suite type, with WiFi/TV/Safe/Views features)
-6. Verify the new room appears in the room listing
-7. Delete the newly created room (waits for DELETE API response)
-8. Verify the room is removed from the listing
-9. Logout and verify redirect to the public homepage
+The backend has a REST API with proper validation rules, which makes it good for both positive and negative testing.
 
-**Why this flow?** It exercises authentication, CRUD operations, and navigation — the core admin workflow. It's deterministic because it creates and deletes its own test data.
+---
 
-### 2. Validation & Negative Scenarios (`tests/validation.spec.ts`)
+## What I Automated and Why
 
-Four focused tests covering input validation:
+After exploring the app, I picked flows based on what a real user would actually do, and what gives the best coverage without being flaky.
 
-| Test | What it verifies |
-|------|-----------------|
-| **Invalid Login** | Wrong credentials show "Invalid credentials" error, user stays on `/admin`, room management is not accessible |
-| **Blank Contact Form** | Submitting empty form shows 5 validation errors (Name, Email, Phone, Subject, Message) |
-| **Invalid Input Lengths** | Too-short values trigger length validation (Phone 11-21 chars, Subject 5-100 chars, Message 20-2000 chars) |
-| **Successful Contact Submission** | Valid data produces a personalized success message ("Thanks for getting in touch {name}!") |
+### 1. Guest Room Booking — End to End (`tests/booking.spec.ts`)
 
-**Why these flows?** They cover the two main public-facing interaction points (admin login, contact form) and verify both positive and negative paths with specific error message assertions.
+This is the main thing a guest comes to the site to do: find a room and book it.
+
+**Steps:** Homepage → browse rooms → click "Book now" → land on reservation page → verify room details and price → click "Reserve Now" → fill in guest details (name, email, phone) → submit → see "Booking Confirmed" with correct dates → return to homepage.
+
+I picked this because it's the **primary user journey** and touches multiple pages. One thing I had to figure out was that the "Book now" on room cards goes to `/reservation/{id}?checkin=...&checkout=...` — the dates come from the URL params, not a manual calendar pick, which made it more stable to automate.
+
+### 2. Admin Room CRUD — End to End (`tests/e2e.spec.ts`)
+
+**Steps:** Go to `/admin` → login → verify redirect to `/admin/rooms` → create a new room (Suite, £250, with features) → verify it shows up in the list → delete it → verify it's gone → logout → verify redirect to homepage.
+
+I chose this because it covers **auth + create + read + delete + session management** in one test. The key challenge was making it work on a shared public instance — other people's data is there too. So I used a unique room name (timestamp-based) and relative count assertions instead of hardcoded numbers.
+
+### 3. Validation & Negative Tests (`tests/validation.spec.ts`)
+
+| Test | What I'm checking |
+|------|-------------------|
+| **Invalid login** | Wrong credentials → "Invalid credentials" error, still on login page, can't access rooms |
+| **Empty contact form** | Submit with nothing filled → 5 validation errors show up (Name, Email, Phone, Subject, Message) |
+| **Too-short inputs** | Fill form with values that are too short → specific length errors (e.g., "Phone must be between 11 and 21 characters") |
+| **Valid contact submission** | Fill everything correctly → success message: "Thanks for getting in touch {name}!" |
+
+I went with the contact form for validation testing because it has **clear, specific error messages** returned from the backend — good for asserting exact behavior. The invalid login test is a straightforward negative case that every app should have.
+
+---
+
+## Test Summary
+
+| # | Test | File | Type |
+|---|------|------|------|
+| 1 | Guest books a room end-to-end | `booking.spec.ts` | E2E |
+| 2 | Admin login → create room → delete → logout | `e2e.spec.ts` | E2E |
+| 3 | Invalid admin login | `validation.spec.ts` | Negative |
+| 4 | Contact form — blank submission | `validation.spec.ts` | Validation |
+| 5 | Contact form — invalid input lengths | `validation.spec.ts` | Validation |
+| 6 | Contact form — successful submission | `validation.spec.ts` | Positive |
+
+---
 
 ## Project Structure
 
 ```
-├── tests/                  # Test specifications
-│   ├── e2e.spec.ts         # Admin room management happy path
-│   └── validation.spec.ts  # Login + contact form validation
-├── pages/                  # Page Object Models
-│   ├── admin-login.page.ts # Admin login page
-│   ├── admin-rooms.page.ts # Admin rooms management page
-│   ├── admin-nav.page.ts   # Admin navigation bar
-│   ├── contact-form.page.ts# Public contact form
-│   ├── home.page.ts        # Public homepage
-│   └── index.ts            # Barrel export
-├── fixtures/               # Playwright test fixtures
-│   └── test-fixtures.ts    # Custom fixtures injecting page objects
-├── data/                   # Test data
-│   └── test-data.ts        # Credentials, room data, expected errors
-├── utils/                  # Helpers
-│   └── helpers.ts          # Utility functions
-├── playwright.config.ts    # Playwright configuration
-├── .env                    # Environment variables (not committed)
-├── .env.example            # Template for environment variables
-└── test-results/           # Screenshots, traces, videos (on failure)
+├── tests/                      # Test specs
+│   ├── booking.spec.ts         # Guest booking journey
+│   ├── e2e.spec.ts             # Admin room management
+│   └── validation.spec.ts      # Login + contact form validation (4 tests)
+├── pages/                      # Page Object Models
+│   ├── reservation.page.ts     # Reservation/booking page
+│   ├── admin-login.page.ts     # Admin login
+│   ├── admin-rooms.page.ts     # Admin rooms management
+│   ├── admin-nav.page.ts       # Admin navigation bar
+│   ├── contact-form.page.ts    # Public contact form
+│   ├── home.page.ts            # Public homepage
+│   └── index.ts                # Barrel export
+├── fixtures/
+│   └── test-fixtures.ts        # Custom Playwright fixtures
+├── data/
+│   └── test-data.ts            # Test data (credentials, guest info, error messages)
+├── utils/
+│   └── helpers.ts              # Utility functions
+├── playwright.config.ts        # Config (base URL, timeouts, reporters, artifacts)
+├── .env.example                # Environment variable template
+└── test-results/               # Screenshots, traces, videos (generated on failure)
 ```
 
-## Setup
+---
+
+## Setup & Run
 
 ### Prerequisites
 
@@ -68,13 +96,11 @@ Four focused tests covering input validation:
 ### Installation
 
 ```bash
-# Install dependencies
+git clone https://github.com/jhasaurav316/Shady-Meadows.git
+cd Shady-Meadows
+
 npm install
-
-# Install Chromium browser
 npx playwright install chromium
-
-# Copy environment variables (adjust if needed)
 cp .env.example .env
 ```
 
@@ -82,116 +108,98 @@ cp .env.example .env
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `BASE_URL` | `https://automationintesting.online` | Application base URL |
-| `ADMIN_USERNAME` | `admin` | Admin login username |
-| `ADMIN_PASSWORD` | `password` | Admin login password |
+| `BASE_URL` | `https://automationintesting.online` | App URL |
+| `ADMIN_USERNAME` | `admin` | Admin username |
+| `ADMIN_PASSWORD` | `password` | Admin password |
 
-## Running Tests
-
-```bash
-# Run all tests (headless)
-npm test
-
-# Run tests in headed mode (see the browser)
-npm run test:headed
-
-# Run with Playwright UI mode (interactive)
-npm run test:ui
-
-# Run with step-by-step debugger
-npm run test:debug
-
-# Run only E2E tests
-npm run test:e2e
-
-# Run only validation tests
-npm run test:validation
-
-# Open the last HTML report
-npm run report
-```
-
-## Reporting & Artifacts
-
-### HTML Report
-
-After running tests, an HTML report is generated in `playwright-report/`. Open it with:
+### Running
 
 ```bash
-npm run report
+npm test                    # All tests, headless
+npm run test:headed         # See the browser
+npm run test:ui             # Playwright UI mode (interactive)
+npm run test:debug          # Step-by-step debugger
+npm run test:e2e            # Only admin E2E
+npm run test:validation     # Only validation tests
+npm run report              # Open HTML report
 ```
 
-A screenshot of the report summary is saved at `test-results/html-report-summary.png`.
+---
 
-### Failure Artifacts
+## Test Report
 
-On test failure, the following are automatically captured in `test-results/`:
+After running `npm test`, an HTML report is generated in `playwright-report/`. View it with `npm run report`.
 
-| Artifact | Policy | Description |
-|----------|--------|-------------|
-| **Screenshots** | `only-on-failure` | Full-page screenshot at point of failure |
-| **Traces** | `retain-on-failure` | Playwright trace file (open with `npx playwright show-trace <path>`) |
-| **Videos** | `retain-on-failure` | Full test execution recording |
+On failure, these are auto-captured in `test-results/`:
 
-## Design Decisions
+| Artifact | When | How to view |
+|----------|------|-------------|
+| Screenshots | On failure | Open the PNG directly |
+| Traces | On failure | `npx playwright show-trace <path>` |
+| Videos | On failure | Open the WebM file |
 
-### Locator Strategy
+---
 
-- **`data-testid` attributes** used where available (e.g., `ContactName`, `ContactEmail`, `roomlisting`)
-- **`#id` selectors** for stable form elements (`#username`, `#password`, `#doLogin`, `#roomName`, `#createRoom`)
-- **`:has-text()` filters** for matching specific rows in dynamic lists
-- **CSS class selectors** only as fallback for elements without test IDs (e.g., `.roomDelete`, `.alert-danger`)
+## Decisions I Made
+
+### Picking the flows
+
+I wanted a mix: one flow that covers what a **guest** does (booking), one that covers what an **admin** does (room CRUD), and a few validation tests for negative coverage. I skipped things like the branding page or reports because they don't add much new coverage on top of what the CRUD test already exercises.
+
+### Locators
+
+I went with a priority order:
+1. `data-testid` attributes first — the contact form has these (`ContactName`, `ContactEmail`, etc.)
+2. `#id` selectors for elements that have stable IDs (`#doLogin`, `#createRoom`, `#doReservation`)
+3. `:has-text()` filters when I need to find a specific row in a list (e.g., finding a room by name)
+4. CSS classes as a last resort (`.roomDelete`, `.room-firstname`)
+
+I avoided XPath entirely and tried to stay away from brittle positional selectors.
 
 ### Page Object Model
 
-Each page/component has its own class encapsulating locators and actions. This provides:
-- Single source of truth for selectors (change once, fix everywhere)
-- Readable test code that reads like user stories
-- Reusable methods across multiple tests
+I created a separate page class for each page/section of the app (6 total). Each one owns its locators and exposes action methods like `login()`, `createRoom()`, `fillGuestDetails()`. The tests themselves just call these methods — if a selector changes, I fix it in one place.
 
-### Test Fixtures
+### Dealing with the shared instance
 
-Custom Playwright fixtures inject page objects into tests, avoiding manual instantiation and ensuring clean setup per test.
+This is a public demo app that anyone can use, so I couldn't assume a clean state. Here's how I handled it:
+- **Room names** are generated with a timestamp suffix so they don't collide with other users' data
+- **Booking dates** are randomized 120–180 days in the future — avoids stepping on existing bookings
+- **The admin test cleans up after itself** — it creates a room then deletes it
+- **Assertions are relative** — I check "room count increased" not "room count is exactly 4"
 
-### Network-Aware Assertions
+### Network-level waits
 
-The delete room operation waits for the actual DELETE API response before asserting removal, preventing race conditions with the shared backend.
+For the room delete, I initially had a flaky test because the UI hadn't updated by the time I asserted. I fixed it by using `waitForResponse()` to wait for the actual DELETE API call to complete before checking the DOM. This made it reliable.
 
-### Shared Environment Handling
+### Why TypeScript
 
-The app at `automationintesting.online` is a shared public instance. Tests are designed to be safe:
-- Room names use timestamp-based unique suffixes to avoid collisions
-- Each test creates and cleans up its own data
-- Count assertions use relative comparisons (`toBeGreaterThan`) rather than absolute values
+The app is a Next.js/React project, so staying in the TypeScript ecosystem felt natural. Also, the type safety helps catch issues early — especially with the page object method signatures and test data shapes.
 
-### Why Not Booking Flow?
+---
 
-The room booking flow requires date-picker interaction with `react-datepicker`, which is notoriously flaky in automation. The admin room CRUD flow provides equivalent E2E coverage with more reliable interactions.
+## AI Usage
 
-## AI Usage Disclosure
+I used **Claude Code** (Anthropic's CLI tool) to help with parts of this assignment. Here's what it helped with and what I did myself:
 
-This test suite was developed with assistance from **Claude Code** (Claude Opus 4.6, Anthropic's CLI tool). Specifically:
+- **Exploring the app:** I used Claude to fetch pages and inspect the DOM structure — element IDs, form fields, API endpoints, error messages. This saved time compared to doing it all through browser DevTools manually.
+- **Scaffolding:** Claude helped generate the initial project structure, playwright config, and tsconfig. I reviewed and adjusted the config values.
+- **Writing page objects and tests:** Claude wrote the initial versions based on the DOM analysis. I ran them, they failed (wrong selectors, wrong URLs), and I iterated on fixes — this back-and-forth took about 3 rounds.
+- **Documentation:** Claude drafted the README. I rewrote sections to reflect my actual thought process.
 
-| Area | AI Contribution |
-|------|----------------|
-| **Application exploration** | Claude fetched and analyzed the app's DOM structure, API endpoints, form fields, and error messages to map out testable flows |
-| **Project scaffolding** | Generated initial project structure, `playwright.config.ts`, `tsconfig.json`, and `package.json` scripts |
-| **Page Object Models** | Authored all page object classes based on discovered DOM selectors |
-| **Test implementation** | Wrote both test spec files with assertions matched to actual app behavior |
-| **Locator debugging** | Iteratively inspected the live DOM to fix selectors (e.g., `/admin` vs `/#/admin`, `#contact` vs `.contact`, network-aware delete) |
-| **README & documentation** | Generated this README with setup instructions and design rationale |
+The core decisions — which flows to automate, how to handle the shared instance, the locator priority — those were mine. Claude was the implementation accelerator.
 
-All code was reviewed and validated through multiple test runs against the live application.
+---
 
 ## Total Time Spent
 
-| Phase | Estimated Time |
-|-------|---------------|
-| Application exploration & flow identification | ~20 min |
-| Project scaffolding & configuration | ~10 min |
-| Page Object Model implementation | ~15 min |
-| Test implementation (E2E + validation) | ~20 min |
-| Debugging & locator fixes (3 iterations) | ~25 min |
-| Report generation & screenshots | ~5 min |
-| README & documentation | ~10 min |
-| **Total** | **~1 hour 45 minutes** |
+| Phase | Time |
+|-------|------|
+| Exploring the app, clicking around, understanding the flows | ~20 min |
+| Setting up the project (init, install, config) | ~10 min |
+| Building page objects (6 pages) | ~20 min |
+| Writing tests (booking + admin CRUD + validation) | ~25 min |
+| Debugging selectors and fixing flaky bits (3 rounds) | ~25 min |
+| Generating reports and capturing screenshots | ~5 min |
+| Writing this README | ~15 min |
+| **Total** | **~2 hours** |
