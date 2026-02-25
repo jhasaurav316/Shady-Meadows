@@ -1,0 +1,22 @@
+{
+  "name": "shady-meadow-qa-automation",
+  "version": "1.0.0",
+  "description": "Playwright test automation suite for Shady Meadows B&B (automationintesting.online)",
+  "scripts": {
+    "test": "npx playwright test",
+    "test:headed": "npx playwright test --headed",
+    "test:ui": "npx playwright test --ui",
+    "test:debug": "npx playwright test --debug",
+    "test:e2e": "npx playwright test tests/e2e.spec.ts",
+    "test:validation": "npx playwright test tests/validation.spec.ts",
+    "report": "npx playwright show-report playwright-report"
+  },
+  "keywords": ["playwright", "automation", "testing", "e2e"],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "dotenv": "^17.3.1"
+  }
+}
