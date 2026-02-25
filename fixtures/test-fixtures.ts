@@ -1,5 +1,5 @@
 import { test as base } from '@playwright/test';
-import { AdminLoginPage, AdminRoomsPage, AdminNavPage, ContactFormPage, HomePage } from '../pages';
+import { AdminLoginPage, AdminRoomsPage, AdminNavPage, ContactFormPage, HomePage, ReservationPage } from '../pages';
 
 type TestFixtures = {
   homePage: HomePage;
@@ -7,6 +7,7 @@ type TestFixtures = {
   adminRoomsPage: AdminRoomsPage;
   adminNav: AdminNavPage;
   contactFormPage: ContactFormPage;
+  reservationPage: ReservationPage;
 };
 
 export const test = base.extend<TestFixtures>({
@@ -24,6 +25,9 @@ export const test = base.extend<TestFixtures>({
   },
   contactFormPage: async ({ page }, use) => {
     await use(new ContactFormPage(page));
+  },
+  reservationPage: async ({ page }, use) => {
+    await use(new ReservationPage(page));
   },
 });
 

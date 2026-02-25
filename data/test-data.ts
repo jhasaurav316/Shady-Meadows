@@ -32,6 +32,27 @@ export const contactFormInvalid = {
   description: 'Too short.',
 };
 
+/**
+ * Generate booking dates in the future to avoid conflicts.
+ * Returns checkin/checkout as YYYY-MM-DD strings.
+ */
+export function getFutureBookingDates(daysFromNow = 60, nights = 2) {
+  const checkin = new Date();
+  checkin.setDate(checkin.getDate() + daysFromNow);
+  const checkout = new Date(checkin);
+  checkout.setDate(checkout.getDate() + nights);
+
+  const fmt = (d: Date) => d.toISOString().split('T')[0];
+  return { checkin: fmt(checkin), checkout: fmt(checkout) };
+}
+
+export const bookingGuest = {
+  firstname: 'John',
+  lastname: 'Doe',
+  email: 'john.doe@example.com',
+  phone: '01234567890',
+};
+
 export const contactFormExpectedErrors = {
   blank: [
     'Name may not be blank',
